@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SSCM Firmware Release Tool</title>
+    <link rel="stylesheet" href="styles.css" />
+    <script type="module" src="/main.js" defer></script>
+  </head>
+
+  <body>
+    <!-- App Header -->
+    <header>
+      <h1>
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle;"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+        SSCM Firmware Release
+      </h1>
+      <div class="status-badge" id="sync-status">
+        <span class="status-indicator pulse"></span>
+        Sync Listener Active: Port 14120
+      </div>
+    </header>
+
+    <!-- Main Container -->
+    <div class="app-container">
+      <!-- Left Panel: Search & Import -->
+      <aside class="sidebar">
+        <div>
+          <div class="panel-title">Filters</div>
+          <form id="filter-form" onsubmit="event.preventDefault();">
+            <div class="form-group">
+              <label for="ap-input">AP Version (codeVersion)</label>
+              <input type="text" id="ap-input" placeholder="e.g., F721BXXS" autocomplete="off" />
+            </div>
+            
+            <div class="form-group">
+              <label for="cp-input">CP Version (bbVersion)</label>
+              <input type="text" id="cp-input" placeholder="e.g., F721BXXS" autocomplete="off" />
+            </div>
+
+            <div class="form-group">
+              <label for="csc-input">CSC Version</label>
+              <input type="text" id="csc-input" placeholder="e.g., F721BOXM" autocomplete="off" />
+            </div>
+
+            <div class="form-group">
+              <label for="model-input">Dev Model Name</label>
+              <input type="text" id="model-input" placeholder="e.g., SM-F721BE" autocomplete="off" />
+            </div>
+
+            <div class="form-group">
+              <label>Release Date/Time Range</label>
+              <div class="date-range">
+                <input type="date" id="start-date-input" />
+                <input type="date" id="end-date-input" />
+              </div>
+            </div>
+
+            <div style="display: flex; gap: 10px; margin-top: 10px;">
+              <button type="button" class="btn-secondary" id="clear-filters-btn">Reset</button>
+            </div>
+          </form>
+        </div>
+
+        <hr style="border: 0; border-top: 1px solid var(--border-glow); margin: 10px 0;" />
+
+        <!-- Manual Paste JSON Option -->
+        <div class="raw-import-container">
+          <div class="panel-title">Manual Data Import</div>
+          <p style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 5px;">
+            Paste getReleaseListAjax.do response JSON to sync manually.
+          </p>
+          <textarea id="import-json-area" placeholder='Paste response JSON here...' autocomplete="off"></textarea>
+          <button type="button" class="btn-primary" id="import-json-btn">
+            Import JSON
+          </button>
+        </div>
+      </aside>
+
+      <!-- Right Panel: Data Grid -->
+      <main class="content">
+        <div class="data-header">
+          <div class="panel-title" style="margin-bottom: 0;">Release List</div>
+          <div class="data-stats" id="data-stats">
+            Showing <span>0</span> of <span>0</span> releases
+          </div>
+        </div>
+
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Model Name</th>
+                <th>AP Version (Code)</th>
+                <th>CP Version (BB)</th>
+                <th>CSC Version</th>
+                <th>Nation / Buyer</th>
+                <th>Approval Date</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="release-table-body">
+              <!-- Dynamically populated rows -->
+            </tbody>
+          </table>
+        </div>
+      </main>
+    </div>
+
+    <!-- Release Detail Modal -->
+    <div class="modal-backdrop" id="detail-modal-backdrop">
+      <div class="modal glass">
+        <div class="modal-header">
+          <h2 id="modal-model-title">Firmware Release Details</h2>
+          <button class="close-btn" id="close-modal-btn">&times;</button>
+        </div>
+        <div class="modal-body" id="modal-details-content">
+          <!-- Dynamic details filled by JS -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Notification Toast -->
+    <div class="toast" id="toast-notification">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent-cyan);"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+      <span id="toast-message">New data synchronized from Chrome Extension!</span>
+    </div>
+  </body>
+</html>

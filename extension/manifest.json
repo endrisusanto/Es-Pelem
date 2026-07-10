@@ -1,0 +1,36 @@
+{
+  "manifest_version": 3,
+  "name": "Samsung SSCM Interceptor",
+  "version": "1.0",
+  "description": "Intercepts AJAX getReleaseListAjax.do and pushes data to the local Tauri app.",
+  "permissions": [
+    "activeTab"
+  ],
+  "host_permissions": [
+    "http://mdvh.sec.samsung.net/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "http://mdvh.sec.samsung.net/*"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "run_at": "document_start"
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "inject.js"
+      ],
+      "matches": [
+        "http://mdvh.sec.samsung.net/*"
+      ]
+    }
+  ]
+}

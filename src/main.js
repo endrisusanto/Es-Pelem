@@ -406,7 +406,7 @@ const toastMessage = document.getElementById('toast-message');
 
 // Initialize events
 function init() {
-  // Filter events
+  // Real-time local filtering for fetched items
   [apInput, cpInput, cscInput, modelInput, startDateInput, endDateInput].forEach(elem => {
     elem.addEventListener('input', renderTable);
     elem.addEventListener('change', renderTable);
@@ -420,6 +420,13 @@ function init() {
     startDateInput.value = '';
     endDateInput.value = '';
     renderTable();
+  });
+
+  // Standalone backend fetch submission
+  const filterForm = document.getElementById('filter-form');
+  filterForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    await fetchReleasesFromBackend();
   });
 
   // Manual import event
@@ -443,9 +450,56 @@ function init() {
 
   // Render initial table
   renderTable();
+}
 
-  // Connect to Tauri TCP events if Tauri is loaded
-  setupTauriListener();
+// Fetch releases directly from Samsung portal via Rust backend command
+async function fetchReleasesFromBackend() {
+  const fetchBtn = document.getElementById('fetch-btn');
+  const originalHtml = fetchBtn.innerHTML;
+  
+  try {
+    fetchBtn.disabled = true;
+    fetchBtn.innerHTML = `
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 4px; animation: spin 1s linear infinite;"><line x1="12" y1="2" x2="12" y2="6"></line><line x1="12" y1="18" x2="12" y2="22"></line><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line><line x1="2" y1="12" x2="6" y2="12"></line><line x1="18" y1="12" x2="22" y2="12"></line><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line></svg>
+      Fetching...
+    `;
+
+    const model = modelInput.value.trim();
+    const ap = apInput.value.trim();
+    const cp = cpInput.value.trim();
+    const csc = cscInput.value.trim();
+    const startDate = startDateInput.value;
+    const endDate = endDateInput.value;
+
+    if (!window.__TAURI__) {
+      throw new Error("Tauri core is not available. Please run inside the desktop shell.");
+    }
+
+    const invoke = (window.__TAURI__.core && window.__TAURI__.core.invoke) || 
+                  (window.__TAURI__.tauri && window.__TAURI__.tauri.invoke);
+                  
+    if (!invoke) {
+      throw new Error("Tauri invoke function not found.");
+    }
+
+    // Invoke backend command
+    const response = await invoke('fetch_releases', {
+      model,
+      ap,
+      cp,
+      csc,
+      startDate,
+      endDate
+    });
+
+    processIncomingData(response);
+  } catch (err) {
+    console.error("Error fetching release list:", err);
+    showToast(err.message || String(err), true);
+  } finally {
+    fetchBtn.disabled = false;
+    fetchBtn.innerHTML = originalHtml;
+  }
 }
 
 // Process new AJAX/JSON data
@@ -457,46 +511,17 @@ function processIncomingData(jsonData) {
     newList = jsonData.objects;
   } else if (jsonData.list && Array.isArray(jsonData.list)) {
     newList = jsonData.list;
-  } else if (jsonData.response) {
-    // Chrome Extension format (which wraps the response string or object)
-    try {
-      const innerJson = typeof jsonData.response === 'string' ? JSON.parse(jsonData.response) : jsonData.response;
-      if (innerJson.objects && Array.isArray(innerJson.objects)) {
-        newList = innerJson.objects;
-      } else if (innerJson.list && Array.isArray(innerJson.list)) {
-        newList = innerJson.list;
-      }
-    } catch (err) {
-      console.error("Failed to parse inner response JSON", err);
-    }
   }
 
   if (newList.length === 0) {
-    showToast("Imported data does not contain a valid release list.", true);
+    showToast("No release records matched your search parameters.", true);
+    dataset = [];
+    renderTable();
     return;
   }
 
-  // Merge items incrementally using releaseDetailId (or fall back to rn + codeVersion if undefined)
-  let addedCount = 0;
-  newList.forEach(item => {
-    const key = item.releaseDetailId || `${item.modelNm}-${item.codeVersion}-${item.approvalDate}`;
-    const exists = dataset.some(existing => {
-      const exKey = existing.releaseDetailId || `${existing.modelNm}-${existing.codeVersion}-${existing.approvalDate}`;
-      return exKey === key;
-    });
-
-    if (!exists) {
-      dataset.unshift(item); // Add to the top
-      addedCount++;
-    } else {
-      // Overwrite/update existing
-      const idx = dataset.findIndex(existing => {
-        const exKey = existing.releaseDetailId || `${existing.modelNm}-${existing.codeVersion}-${existing.approvalDate}`;
-        return exKey === key;
-      });
-      dataset[idx] = item;
-    }
-  });
+  // Overwrite dataset with fetched entries
+  dataset = newList;
 
   // Sort by approvalDate descending
   dataset.sort((a, b) => {
@@ -506,7 +531,7 @@ function processIncomingData(jsonData) {
   });
 
   renderTable();
-  showToast(`Synchronized ${addedCount} new releases (${newList.length} total parsed).`);
+  showToast(`Successfully fetched ${newList.length} releases.`);
 }
 
 // Render data with filtering applied
@@ -642,27 +667,6 @@ function showToast(message, isError = false) {
   setTimeout(() => {
     toast.classList.remove('show');
   }, 4000);
-}
-
-// Tauri IPC listener connection
-async function setupTauriListener() {
-  try {
-    if (window.__TAURI__) {
-      const { listen } = window.__TAURI__.event;
-      await listen('new-sscm-data', (event) => {
-        processIncomingData(event.payload);
-      });
-      console.log("Connected to Tauri local listener successfully!");
-    } else {
-      console.log("Not running in Tauri browser shell. Sync listener inactive.");
-      const syncStatus = document.getElementById('sync-status');
-      if (syncStatus) {
-        syncStatus.innerHTML = '<span class="status-indicator" style="background-color: var(--warning); box-shadow: 0 0 8px var(--warning);"></span> Sync Server: App Shell Only';
-      }
-    }
-  } catch (err) {
-    console.error("Error setting up Tauri listeners", err);
-  }
 }
 
 // Kickstart app

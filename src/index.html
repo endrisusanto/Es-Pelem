@@ -15,9 +15,9 @@
         <img src="assets/logo.png" alt="Logo" style="width: 28px; height: 28px; border-radius: 6px; vertical-align: middle; margin-right: 8px; box-shadow: 0 0 10px rgba(6, 182, 212, 0.4);" />
         SSCM Firmware Release
       </h1>
-      <div class="status-badge" id="sync-status">
-        <span class="status-indicator pulse"></span>
-        Sync Listener Active: Port 14120
+      <div class="status-badge" id="sync-status" style="border-color: rgba(139, 92, 246, 0.3); color: var(--accent-purple); background: rgba(139, 92, 246, 0.1);">
+        <span class="status-indicator pulse" style="background-color: var(--accent-purple); box-shadow: 0 0 8px var(--accent-purple);"></span>
+        Standalone Mode
       </div>
     </header>
 
@@ -26,7 +26,7 @@
       <!-- Left Panel: Search & Import -->
       <aside class="sidebar">
         <div>
-          <div class="panel-title">Filters</div>
+          <div class="panel-title">Search Parameters</div>
           <form id="filter-form" onsubmit="event.preventDefault();">
             <div class="form-group">
               <label for="ap-input">AP Version (codeVersion)</label>
@@ -56,8 +56,12 @@
               </div>
             </div>
 
-            <div style="display: flex; gap: 10px; margin-top: 10px;">
-              <button type="button" class="btn-secondary" id="clear-filters-btn">Reset</button>
+            <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 15px;">
+              <button type="submit" class="btn-primary" id="fetch-btn">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 4px;"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+                Fetch Releases
+              </button>
+              <button type="button" class="btn-secondary" id="clear-filters-btn">Reset Parameters</button>
             </div>
           </form>
         </div>

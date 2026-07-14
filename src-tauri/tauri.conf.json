@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "Es Pelem",
-  "version": "0.1.11",
+  "version": "0.1.12",
   "identifier": "com.endri-pro.es-pelem",
   "build": {
     "frontendDist": "../src"

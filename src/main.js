@@ -448,14 +448,54 @@ function init() {
     if (e.target === detailModalBackdrop) hideModal();
   });
 
+  const invoke = (window.__TAURI__.core && window.__TAURI__.core.invoke) || 
+                (window.__TAURI__.tauri && window.__TAURI__.tauri.invoke);
+
+  // Login SSO button
+  const loginSsoBtn = document.getElementById('btn-login-sso');
+  if (loginSsoBtn && invoke) {
+    loginSsoBtn.addEventListener('click', async () => {
+      try {
+        await invoke('open_sso_login');
+      } catch (err) {
+        showToast("Error opening SSO: " + err, true);
+      }
+    });
+  }
+
+  // Set up Tauri event listeners for fetch results
+  const listen = (window.__TAURI__.event && window.__TAURI__.event.listen) || 
+                 (window.__TAURI__.core && window.__TAURI__.core.listen);
+  
+  if (listen) {
+    listen('fetch-result', (event) => {
+      resetFetchButton();
+      processIncomingData(event.payload);
+    });
+    
+    listen('fetch-error', (event) => {
+      resetFetchButton();
+      showToast("Fetch error: " + event.payload, true);
+    });
+  }
+
   // Render initial table
   renderTable();
+}
+
+let _fetchBtnOriginalHtml = '';
+function resetFetchButton() {
+  const fetchBtn = document.getElementById('fetch-btn');
+  if (fetchBtn && _fetchBtnOriginalHtml) {
+    fetchBtn.disabled = false;
+    fetchBtn.innerHTML = _fetchBtnOriginalHtml;
+  }
 }
 
 // Fetch releases directly from Samsung portal via Rust backend command
 async function fetchReleasesFromBackend() {
   const fetchBtn = document.getElementById('fetch-btn');
-  const originalHtml = fetchBtn.innerHTML;
+  _fetchBtnOriginalHtml = fetchBtn.innerHTML;
   
   try {
     fetchBtn.disabled = true;
@@ -483,7 +523,7 @@ async function fetchReleasesFromBackend() {
     }
 
     // Invoke backend command
-    const response = await invoke('fetch_releases', {
+    await invoke('fetch_releases', {
       model,
       ap,
       cp,
@@ -492,13 +532,11 @@ async function fetchReleasesFromBackend() {
       endDate
     });
 
-    processIncomingData(response);
+    // The result will be handled by the 'fetch-result' event listener.
   } catch (err) {
     console.error("Error fetching release list:", err);
+    resetFetchButton();
     showToast(err.message || String(err), true);
-  } finally {
-    fetchBtn.disabled = false;
-    fetchBtn.innerHTML = originalHtml;
   }
 }
 
